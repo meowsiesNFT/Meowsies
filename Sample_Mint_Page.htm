@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>meowsies</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<link rel="stylesheet" href="/css/global.css">
+<style>
+body {font-family: "Times New Roman", Georgia, Serif;}
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display";
+  letter-spacing: 5px;
+}
+</style>
+</head>
+<body>
+<script type="text/javascript">
+	var connectedAccounts = null;
+	var connectedAccount = null;
+	var contract = null;
+	var mintPricePerNFT = null;
+	var CONTRACTADDRESS = "0x211Ca5294a69cAA22865D5FcB8e3f493FdC3e9eF";
+	var ABI = [{"inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"getMintPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+	
+	window.onload = (event) => {
+		checkWalletConnected();
+	};
+            
+	async function checkWalletConnected() {
+		if(window.ethereum) {
+			//Set up our contract so we can interact with it
+			window.web3 = new Web3(window.ethereum);
+			contract = new window.web3.eth.Contract(ABI, CONTRACTADDRESS);
+			
+			//Check if wallet already connected to site
+			connectedAccounts = await window.ethereum.request({method: 'eth_accounts'});       
+			if (connectedAccounts.length) {
+				//already connected, update our HTML elements to show data about the address and the contract info
+				connectedAccount = connectedAccounts[0];
+				await updateInputsAsWalletConnected();
+			}
+		}
+	}
+	
+	async function connectUserWallet() {
+		if(window.ethereum) {
+			//Connect user wallet to site and update our HTML elements to show data about the address and the contract info
+			await window.ethereum.request({method: 'eth_requestAccounts'});
+			connectedAccounts = await web3.eth.getAccounts();
+			connectedAccount = connectedAccounts[0];
+			await updateInputsAsWalletConnected();
+		}
+	}
+	
+	async function mintNFT() {
+		var mintQuantity = null;
+		var totalPrice = null;
+		mintQuantity = parseInt(document.getElementById("mintQuantity").value);
+		totalPrice = mintQuantity * mintPricePerNFT;
+		//one final check to make sure our contract is valid, we are connected to an account, and we know the total price and the amount to mint, then mint the NFT
+		if(contract && connectedAccount && totalPrice && mintQuantity) {
+			await contract.methods.mint(mintQuantity).send({from: connectedAccount, value: totalPrice.toString()});
+			alert('NFTs were minted sucessfully');
+			window.location.reload();
+		}
+		else {
+			alert('Issue encountered. Connect wallet first or refresh page.');
+		}
+	}
+	
+	async function updateInputsAsWalletConnected() {
+		//If we are connected to our smart contract, update all our html elements to notate that we are connected, and update elements to show some data about our contract
+		if(contract) {
+			//update our connected address
+			document.getElementById('connectedAddress').textContent = connectedAccount;
+			
+			//disable the connect button as we are already connected
+			document.getElementById('connectWallet').title = "Already Connected";
+			document.getElementById('connectWallet').disabled = true;
+			
+			//enable our mint button so user can mint
+			document.getElementById('mint').title = "Mint";
+			document.getElementById('mint').disabled = false;
+			
+			//get the price to user knows how much NFTs cost (since we created a contract that allows us to update the price, let's look up the price on the contract so this value is always up to date here in our page
+			mintPricePerNFT = await contract.methods.getMintPrice().call();
+			document.getElementById('mintPrice').textContent = mintPricePerNFT / 1000000000000000000;  //price from contract is in WEI, but that is not user friendly, so convert to ETH when displaying it
+			
+			//get the max supply and current supply so user knows how many are minted, and if any are left
+			var maxSupply = await contract.methods.MAX_SUPPLY().call();
+			document.getElementById('maxSupply').textContent = maxSupply;
+			var currentSupply = await contract.methods.totalSupply().call();
+			document.getElementById('currentSupply').textContent = currentSupply;
+		}
+	}
+</script>
+
+<!-- Navbar (sit on top) -->
+
+<div class="w3-top">
+  <div class="w3-bar w3-white w3-card">
+    <a class="w3-bar-item w3-button w3-padding-large w3-hide-medium w3-hide-large w3-right" href="javascript:void(0)" onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
+	<div class="w3-dropdown-hover">
+      <button class="w3-padding-medium w3-button" title="Home">HOME</button>
+      <div class="w3-dropdown-content w3-bar-block w3-card-4">
+        <a href="#AboutMeowsies" class="w3-bar-item w3-button">About Meowsies</a>
+        <a href="#Team" class="w3-bar-item w3-button">Team</a>
+		<a href="#ContactUs" class="w3-bar-item w3-button">Contact Us</a>
+      </div>
+    </div>
+    <a href="/project.htm"" class="w3-bar-item w3-button w3-padding-medium">PROJECT DETAILS</a>
+	<a href="#"" class="w3-bar-item w3-button w3-padding-medium" title="Coming Soon">MINT</a>
+  </div>
+</div>
+
+
+<!-- Header -->
+<header class="w3-display-container w3-content w3-wide" id="home">
+  <img class="w3-image" src="/images/mainHeader.jpg" alt="Meowsies Header" width="1600" height="800" style="margin-top:10px;margin-bottom:10px;margin-right:auto;margin-left:auto">
+</header>
+
+<!-- Page content -->
+<div class="w3-auto">
+
+
+  <!-- Mint Meowsies -->
+  <div class="w3-container w3-padding-16" id="AboutMeowsies">
+    <h1 class="w3-center">Mint Meowsies</h1>
+	<p><input type="button" value="Connect Wallet" id="connectWallet" onclick="connectUserWallet();"></p>
+	<p>Connected Address: <span id="connectedAddress"></span></p>
+	<p>Mint price: <span id="mintPrice"></span></p>
+	<p>Current Supply (number of Meowsies minted): <span id="currentSupply"></span></p>
+	<p>Max Supply: <span id="maxSupply"></span></p>
+	<hr>
+	<p>How many Meowsies to mint?<input id="mintQuantity" value=1></input></p>
+	<p><input type="button" id="mint" disabled="true" value="Mint Meowsie" title="Connect Wallet First" onclick="mintNFT();"></p>
+	
+	
+	
+
+  </div>
+  
+  <hr>
+  
+  
+<!-- End page content -->
+</div>
+
+<!-- Footer -->
+<footer class="w3-center w3-light-grey w3-padding-small">
+  <p>Credit and thanks to <a href="https://www.w3schools.com/w3css/default.asp" title="W3.CSS" target="_blank" class="w3-hover-text-green">w3.css</a> for the html template and css</p>
+</footer>
+
+</body>
+</html>
